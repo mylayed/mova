@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { DevPasswordSignIn } from '@/components/DevPasswordSignIn';
 import { Body, Card, ErrorText, PrimaryButton, Screen, SecondaryButton, TextField, Title } from '@/components/ui';
 import { t } from '@/i18n';
 import { authRedirectUrl } from '@/lib/authLinks';
@@ -117,6 +118,7 @@ export default function SignInScreen() {
       )}
 
       <Body muted style={[styles.center, styles.note]}>{t('signIn.devNote')}</Body>
+      <DevPasswordSignIn />
     </Screen>
   );
 }

@@ -29,6 +29,11 @@ const uk = {
   'signIn.invalidCode': 'Код неправильний або застарів',
   'signIn.tooMany': 'Забагато спроб. Спробуйте за кілька хвилин',
   'signIn.devNote': 'Вхід через Apple і Google з’явиться пізніше',
+  'signIn.password': 'Пароль (від 6 символів)',
+  'signIn.devPassword': 'Вхід з паролем (розробка)',
+  'signIn.devPasswordHint': 'Лише для розробки: без листів. Потрібно вимкнути «Confirm email» у Supabase.',
+  'signIn.devSignUp': 'Створити акаунт',
+  'signIn.devConfirmOn': 'Акаунт створено, але Supabase чекає підтвердження email. Вимкніть «Confirm email» і створіть акаунт з іншим email.',
 
   'onboarding.languageTitle': 'Яку мову вивчаємо?',
   'onboarding.levelTitle': 'Ваш рівень',
@@ -109,6 +114,11 @@ const en: Record<keyof typeof uk, string> = {
   'signIn.invalidCode': 'The code is wrong or expired',
   'signIn.tooMany': 'Too many attempts. Try again in a few minutes',
   'signIn.devNote': 'Sign in with Apple and Google is coming later',
+  'signIn.password': 'Password (6+ characters)',
+  'signIn.devPassword': 'Password sign-in (development)',
+  'signIn.devPasswordHint': 'Development only: no emails. Turn off “Confirm email” in Supabase.',
+  'signIn.devSignUp': 'Create account',
+  'signIn.devConfirmOn': 'Account created, but Supabase is waiting for email confirmation. Turn off “Confirm email” and sign up with another email.',
 
   'onboarding.languageTitle': 'Which language are you learning?',
   'onboarding.levelTitle': 'Your level',
