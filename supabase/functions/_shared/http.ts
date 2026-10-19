@@ -1,0 +1,38 @@
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+// Помилка з HTTP-статусом і машинним кодом, який розуміє застосунок.
+export class HttpError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message?: string,
+  ) {
+    super(message ?? code);
+  }
+}
+
+export function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+// Обгортка обробника: CORS, лише POST, перетворення помилок на JSON.
+export function handler(fn: (req: Request) => Promise<Response>) {
+  return async (req: Request): Promise<Response> => {
+    if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+    if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+    try {
+      return await fn(req);
+    } catch (err) {
+      if (err instanceof HttpError) return json({ error: err.code, message: err.message }, err.status);
+      console.error(err);
+      return json({ error: 'internal_error' }, 500);
+    }
+  };
+}

@@ -35,11 +35,12 @@
 
 ## Етап 2. Голосовий діалог — ядро MVP (2–3 тижні)
 
-- [ ] Edge Function `conversation-start`: перевірка ліміту → створення розмови → перша репліка ШІ + TTS
-- [ ] Edge Function `conversation-turn`: аудіо → STT → Claude → TTS (streaming), запис `messages` і `usage_events`; аудіо не зберігати
-- [ ] Edge Function `conversation-finish`: `feedback_reports`, `mistakes` (категорії articles / tenses / word_order / prepositions / vocabulary, пояснення українською), пропозиції слів для повторення
-- [ ] Системні промпти: репетитор Emma, рівень CEFR, короткі репліки, підказки українською на A1–A2, типові помилки україномовних; кешування промпту
-- [ ] Вибір моделі за тарифом і рівнем
+- [x] Edge Function `conversation-start`: перевірка ліміту → створення розмови → перша репліка ШІ + TTS
+- [x] Edge Function `conversation-turn`: аудіо → STT → Claude → TTS, запис `messages` і `usage_events`; аудіо не зберігати; також приймає текст, розпізнаний на пристрої
+- [ ] Streaming відповіді й озвучки (якщо заміри затримки покажуть потребу)
+- [x] Edge Function `conversation-finish`: `feedback_reports`, `mistakes` (категорії articles / tenses / word_order / prepositions / vocabulary, пояснення українською), пропозиції слів для повторення
+- [x] Системні промпти: репетитор Emma, рівень CEFR, короткі репліки, підказки українською на A1–A2, типові помилки україномовних; кешування промпту
+- [x] Вибір моделі за тарифом і рівнем
 - [ ] Заміри затримки повного циклу; ціль — природна розмова без пауз
 
 ## Етап 3. Мобільний застосунок: екрани етапу 1 (2–3 тижні)
