@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
-// Лише публічні значення (URL і anon key). Ключі Claude/STT/TTS живуть тільки в Edge Functions.
+// Лише публічні значення (URL і publishable key). Ключі Claude/STT/TTS живуть тільки в Edge Functions.
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -20,3 +20,11 @@ export const supabase = createClient(
     },
   },
 );
+
+// На телефоні оновлення токена працює лише, поки застосунок на екрані.
+if (Platform.OS !== 'web') {
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') supabase.auth.startAutoRefresh();
+    else supabase.auth.stopAutoRefresh();
+  });
+}
