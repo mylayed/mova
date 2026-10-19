@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import type { LanguageCode, Level } from '@/config/languages';
+import { listenForAuthLinks } from '@/lib/authLinks';
 import { supabase } from '@/lib/supabase';
 
 export type UserLanguage = { language: LanguageCode; level: Level };
@@ -43,7 +44,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setSessionLoading(false);
     });
     const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
-    return () => data.subscription.unsubscribe();
+    const stopLinks = listenForAuthLinks();
+    return () => {
+      data.subscription.unsubscribe();
+      stopLinks();
+    };
   }, []);
 
   const userId = session?.user.id ?? null;

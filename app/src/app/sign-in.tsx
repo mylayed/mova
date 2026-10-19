@@ -1,17 +1,18 @@
 import { useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Body, Card, ErrorText, PrimaryButton, Screen, SecondaryButton, TextField, Title } from '@/components/ui';
 import { t } from '@/i18n';
+import { authRedirectUrl } from '@/lib/authLinks';
 import { supabase } from '@/lib/supabase';
 import { colors, fonts, spacing } from '@/theme/tokens';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Тимчасовий вхід для розробки. Стандартний лист Supabase містить посилання (без власного SMTP
-// шаблон не змінити), тож у браузері входимо за посиланням. Код з листа запрацює, коли
-// буде налаштовано SMTP і шаблон з {{ .Token }}. Apple і Google — на етапі 3 плану.
-const USE_LINK = Platform.OS === 'web';
+// Тимчасовий вхід для розробки. Стандартний лист Supabase містить лише посилання (без власного
+// SMTP шаблон не змінити), тож входимо за посиланням і в браузері, і на телефоні (Expo Go).
+// Введення коду запрацює, коли буде SMTP і шаблон з {{ .Token }}. Apple і Google — етап 3 плану.
+const USE_LINK = true;
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
@@ -30,7 +31,7 @@ export default function SignInScreen() {
     setError(null);
     const { error: err } = await supabase.auth.signInWithOtp({
       email: trimmed,
-      options: USE_LINK ? { emailRedirectTo: window.location.origin } : undefined,
+      options: USE_LINK ? { emailRedirectTo: authRedirectUrl() } : undefined,
     });
     setBusy(false);
     if (err) {
