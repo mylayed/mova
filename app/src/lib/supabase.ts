@@ -16,7 +16,8 @@ export const supabase = createClient(
       storage: Platform.OS === 'web' ? undefined : AsyncStorage,
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: false,
+      // У браузері вхід за посиланням з листа повертає сесію в адресі сторінки.
+      detectSessionInUrl: Platform.OS === 'web',
     },
   },
 );
