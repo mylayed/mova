@@ -5,7 +5,7 @@ import { tutorReply } from '../_shared/claude.ts';
 import { insertMessage, recordUsage, systemPromptFor, toTurns, usageStatus, type ConversationRow } from '../_shared/conversation.ts';
 import { handler, HttpError, json } from '../_shared/http.ts';
 import { estimateCost, estimateSpeechSeconds, isLevel, MIN_SECONDS_TO_START, pickModel, type Level } from '../_shared/policy.ts';
-import { spokenPart, synthesize } from '../_shared/speech.ts';
+import { replyPayload, spokenPart, synthesize } from '../_shared/speech.ts';
 import { adminClient, requireUser } from '../_shared/supabase.ts';
 
 const MAX_CUSTOM_TOPIC_LENGTH = 200;
@@ -58,8 +58,9 @@ Deno.serve(handler(async (req) => {
     .eq('language', language);
 
   const reply = await tutorReply(model, systemPromptFor(conv), toTurns([]));
-  const audio = await synthesize(spokenPart(reply.text), level);
-  const replySeconds = estimateSpeechSeconds(spokenPart(reply.text), level);
+  const spoken = spokenPart(reply.text);
+  const audio = await synthesize(spoken, level);
+  const replySeconds = estimateSpeechSeconds(spoken, level);
 
   await insertMessage(admin, conv.id, 'assistant', reply.text, replySeconds * 1000);
   await recordUsage(admin, {
@@ -67,7 +68,7 @@ Deno.serve(handler(async (req) => {
     conversationId: conv.id,
     kind: 'start',
     seconds: replySeconds,
-    estCost: estimateCost({ model, ...reply.usage, ttsSeconds: replySeconds, sttSeconds: 0 }),
+    estCost: estimateCost({ model, ...reply.usage, ttsSeconds: audio ? replySeconds : 0, sttSeconds: 0 }),
   });
   await admin.from('conversations').update({ duration_seconds: replySeconds }).eq('id', conv.id);
 
@@ -76,7 +77,7 @@ Deno.serve(handler(async (req) => {
     conversation_id: conv.id,
     level,
     model,
-    reply: { text: reply.text, audio_base64: audio.base64, audio_mime: audio.mime },
+    reply: replyPayload(reply.text, spoken, audio),
     remaining_seconds: after.remaining_seconds,
     remaining_month_seconds: Math.max(0, after.monthly_limit_seconds - after.used_month_seconds),
   });

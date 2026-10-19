@@ -45,7 +45,7 @@ npx supabase db push
 
 Помилки повертаються як `{ error: "<код>" }`: `limit_reached` (402), `premium_topic` (402), `nothing_heard` (422), `conversation_finished` (409) тощо.
 
-Моделі: Claude Haiku 5.5 для Free і рівнів A1–B1, Claude Sonnet 5.5 для B2+ і Pro (`_shared/policy.ts`). Розпізнавання й озвучка зараз через OpenAI (`_shared/speech.ts`) — провайдера можна замінити в одному файлі.
+Моделі: Claude Haiku 5.5 для Free і рівнів A1–B1, Claude Sonnet 5.5 для B2+ і Pro (`_shared/policy.ts`). Розпізнавання й озвучка на сервері — через OpenAI (`_shared/speech.ts`), провайдера можна замінити в одному файлі. **`OPENAI_API_KEY` необовʼязковий:** без нього сервер працює лише з текстом — застосунок розпізнає мовлення на пристрої й надсилає `text`, а репліку озвучує сам за полем `reply.spoken_text` (`audio_base64` тоді `null`). Аудіо без ключа відхиляється з кодом `server_stt_disabled`.
 
 ```bash
 cd supabase/functions

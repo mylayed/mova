@@ -1,8 +1,9 @@
-import { assert, assertEquals } from '@std/assert';
+import { assert, assertEquals, assertRejects } from '@std/assert';
 
 import { clampUserSeconds, estimateCost, estimateSpeechSeconds, MAX_USER_TURN_SECONDS, pickModel } from './policy.ts';
 import { formatTranscript, tutorSystemPrompt } from './prompts.ts';
-import { spokenPart } from './speech.ts';
+import { replyPayload, serverSpeechEnabled, spokenPart, synthesize, transcribe } from './speech.ts';
+import { HttpError } from './http.ts';
 import { toTurns } from './conversation.ts';
 
 Deno.test('pickModel: Haiku для Free і A1–B1, Sonnet для B2+ і Pro', () => {
@@ -61,4 +62,22 @@ Deno.test('formatTranscript: нумерація рядків з 1', () => {
     formatTranscript([{ role: 'assistant', text: 'Hi' }, { role: 'user', text: 'I am go' }]),
     '1. Tutor: Hi\n2. Learner: I am go',
   );
+});
+
+Deno.test('без OPENAI_API_KEY: озвучка на пристрої, серверне розпізнавання вимкнене', async () => {
+  const saved = Deno.env.get('OPENAI_API_KEY');
+  Deno.env.delete('OPENAI_API_KEY');
+  try {
+    assertEquals(serverSpeechEnabled(), false);
+    assertEquals(await synthesize('Hello there', 'B1'), null);
+    assertEquals(replyPayload('Hi [Підказка]', 'Hi', null), {
+      text: 'Hi [Підказка]',
+      spoken_text: 'Hi',
+      audio_base64: null,
+      audio_mime: null,
+    });
+    await assertRejects(() => transcribe(new File(['x'], 'a.m4a'), 'en'), HttpError, 'server_stt_disabled');
+  } finally {
+    if (saved) Deno.env.set('OPENAI_API_KEY', saved);
+  }
 });

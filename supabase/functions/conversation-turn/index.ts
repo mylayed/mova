@@ -14,7 +14,7 @@ import {
 } from '../_shared/conversation.ts';
 import { handler, HttpError, json } from '../_shared/http.ts';
 import { clampUserSeconds, estimateCost, estimateSpeechSeconds } from '../_shared/policy.ts';
-import { spokenPart, synthesize, transcribe } from '../_shared/speech.ts';
+import { replyPayload, spokenPart, synthesize, transcribe } from '../_shared/speech.ts';
 import { adminClient, requireUser } from '../_shared/supabase.ts';
 
 const MAX_TEXT_LENGTH = 1000;
@@ -53,7 +53,7 @@ Deno.serve(handler(async (req) => {
     conversationId: conv.id,
     kind: 'turn',
     seconds: turnSeconds,
-    estCost: estimateCost({ model: conv.model, ...reply.usage, ttsSeconds: replySeconds, sttSeconds }),
+    estCost: estimateCost({ model: conv.model, ...reply.usage, ttsSeconds: audio ? replySeconds : 0, sttSeconds }),
   });
   await admin
     .from('conversations')
@@ -63,7 +63,7 @@ Deno.serve(handler(async (req) => {
   const after = await usageStatus(admin, user.id, conv.id);
   return json({
     user_text: userText,
-    reply: { text: reply.text, audio_base64: audio.base64, audio_mime: audio.mime },
+    reply: replyPayload(reply.text, spoken, audio),
     remaining_seconds: after.remaining_seconds,
     remaining_month_seconds: Math.max(0, after.monthly_limit_seconds - after.used_month_seconds),
     // Час вичерпано: застосунок дограє відповідь і викликає conversation-finish.

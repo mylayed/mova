@@ -15,7 +15,14 @@ const TTS_VOICE = 'coral';
 
 export const MAX_AUDIO_BYTES = 5 * 1024 * 1024;
 
+// Без OPENAI_API_KEY сервер працює лише з текстом: розпізнавання й озвучку робить застосунок
+// на пристрої (безкоштовно). Ключ можна додати пізніше без змін у коді.
+export function serverSpeechEnabled(): boolean {
+  return Boolean(Deno.env.get('OPENAI_API_KEY'));
+}
+
 export async function transcribe(audio: File, language: string): Promise<string> {
+  if (!serverSpeechEnabled()) throw new HttpError(400, 'server_stt_disabled');
   if (audio.size === 0) throw new HttpError(400, 'empty_audio');
   if (audio.size > MAX_AUDIO_BYTES) throw new HttpError(413, 'audio_too_large');
 
@@ -40,7 +47,9 @@ export async function transcribe(audio: File, language: string): Promise<string>
 
 export type SynthesizedAudio = { base64: string; mime: string };
 
-export async function synthesize(text: string, level: Level): Promise<SynthesizedAudio> {
+// null — серверна озвучка вимкнена, застосунок озвучує spoken_text сам.
+export async function synthesize(text: string, level: Level): Promise<SynthesizedAudio | null> {
+  if (!serverSpeechEnabled()) return null;
   const res = await fetch(`${OPENAI_URL}/audio/speech`, {
     method: 'POST',
     headers: {
@@ -62,6 +71,15 @@ export async function synthesize(text: string, level: Level): Promise<Synthesize
     throw new HttpError(502, 'tts_failed');
   }
   return { base64: encodeBase64(new Uint8Array(await res.arrayBuffer())), mime: 'audio/mpeg' };
+}
+
+export function replyPayload(text: string, spoken: string, audio: SynthesizedAudio | null) {
+  return {
+    text,
+    spoken_text: spoken,
+    audio_base64: audio?.base64 ?? null,
+    audio_mime: audio?.mime ?? null,
+  };
 }
 
 // Квадратні дужки — підказки українською для A1–A2: показуються текстом, але не озвучуються.
