@@ -10,6 +10,13 @@ export const colors = {
   onAccent: '#08241C',
   mistake: '#F2B880',
   mistakeBg: 'rgba(242, 184, 128, 0.12)',
+  // Репліки користувача в розмові.
+  userBubble: '#1D3A33',
+  userBubbleBorder: '#2B5A4D',
+  userBubbleText: '#E6FBF4',
+  accentSoft: 'rgba(94, 224, 184, 0.08)',
+  accentSoftBorder: 'rgba(94, 224, 184, 0.25)',
+  accentTint: 'rgba(94, 224, 184, 0.14)',
 } as const;
 
 export const radius = {

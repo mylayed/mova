@@ -93,6 +93,49 @@ export async function analyzeConversation(
   return { feedback: response.parsed_output, usage: toUsage(response.usage) };
 }
 
+export const HintSchema = z.object({
+  suggestion: z.string(),
+  translation_uk: z.string(),
+});
+
+export type Hint = z.infer<typeof HintSchema>;
+
+// Підказка: одна коротка репліка, яку учень може сказати далі. Той самий системний промпт,
+// що й у розмові, тож кеш історії використовується повторно.
+export async function suggestReply(
+  model: ModelTier,
+  system: string,
+  turns: Turn[],
+  level: string,
+): Promise<{ hint: Hint; usage: Usage }> {
+  const last = turns[turns.length - 1];
+  // Останньою має бути репліка репетитора; просимо підказку окремим повідомленням учня.
+  const messages = [
+    ...turns.map((t) => ({ role: t.role, content: t.text })),
+    {
+      role: 'user' as const,
+      content:
+        `[Not part of the conversation: the learner asks for help. Suggest ONE short, natural reply (CEFR ${level}) ` +
+        'they could say next in answer to your last line, and its Ukrainian translation. Do not continue the role-play.]',
+    },
+  ];
+  if (last?.role === 'user') messages.splice(messages.length - 1, 0, { role: 'assistant', content: '…' });
+
+  const response = await anthropic().beta.messages.parse({
+    model: MODEL_IDS[model],
+    max_tokens: 1000,
+    betas: [FALLBACK_BETA],
+    fallbacks: 'default',
+    output_config: { effort: 'low', format: betaZodOutputFormat(HintSchema) },
+    system,
+    messages,
+  });
+  if (response.stop_reason === 'refusal' || !response.parsed_output) {
+    throw new HttpError(502, 'hint_failed');
+  }
+  return { hint: response.parsed_output, usage: toUsage(response.usage) };
+}
+
 function toUsage(usage: Anthropic.Beta.BetaUsage): Usage {
   return {
     inputTokens: usage.input_tokens + (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0),

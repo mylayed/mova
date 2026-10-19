@@ -1,26 +1,36 @@
+import { Mail } from 'lucide-react-native';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { AnimatedIcon } from '@/components/AnimatedIcon';
 import { DevPasswordSignIn } from '@/components/DevPasswordSignIn';
+import { useWelcomeSeen, Welcome } from '@/components/Welcome';
 import { Body, Card, ErrorText, PrimaryButton, Screen, SecondaryButton, TextField, Title } from '@/components/ui';
 import { t } from '@/i18n';
-import { authRedirectUrl } from '@/lib/authLinks';
+import { authRedirectUrl, signInWithGoogle } from '@/lib/authLinks';
 import { supabase } from '@/lib/supabase';
-import { colors, fonts, spacing } from '@/theme/tokens';
+import { colors, fonts, hitTarget, radius, spacing } from '@/theme/tokens';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Тимчасовий вхід для розробки. Стандартний лист Supabase містить лише посилання (без власного
-// SMTP шаблон не змінити), тож входимо за посиланням і в браузері, і на телефоні (Expo Go).
-// Введення коду запрацює, коли буде SMTP і шаблон з {{ .Token }}. Apple і Google — етап 3 плану.
-const USE_LINK = true;
-
+// Вхід: Google (основний), посилання на email (стандартний лист Supabase без власного SMTP
+// містить лише посилання) і пароль для розробки. Apple — коли буде акаунт Apple Developer.
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
-  const [step, setStep] = useState<'email' | 'sent'>('email');
-  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState<'google' | 'email' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [welcomeSeen, markWelcomeSeen] = useWelcomeSeen();
+
+  async function google() {
+    setBusy('google');
+    setError(null);
+    const result = await signInWithGoogle();
+    setBusy(null);
+    if (result === 'not_configured') setError(t('signIn.googleNotConfigured'));
+    else if (result === 'error') setError(t('error.generic'));
+    // 'ok' — сесія оновиться, навігатор сам перейде далі; 'cancelled' — нічого не робимо.
+  }
 
   async function sendEmail() {
     const trimmed = email.trim().toLowerCase();
@@ -28,35 +38,29 @@ export default function SignInScreen() {
       setError(t('signIn.invalidEmail'));
       return;
     }
-    setBusy(true);
+    setBusy('email');
     setError(null);
     const { error: err } = await supabase.auth.signInWithOtp({
       email: trimmed,
-      options: USE_LINK ? { emailRedirectTo: authRedirectUrl() } : undefined,
+      options: { emailRedirectTo: authRedirectUrl() },
     });
-    setBusy(false);
+    setBusy(null);
     if (err) {
       setError(err.status === 429 ? t('signIn.tooMany') : err.message);
       return;
     }
     setEmail(trimmed);
-    setStep('sent');
+    setSent(true);
   }
 
-  async function verify() {
-    setBusy(true);
-    setError(null);
-    const { error: err } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: 'email' });
-    setBusy(false);
-    // Після успіху сесія оновиться, і навігатор сам перейде далі.
-    if (err) setError(err.status === 429 ? t('signIn.tooMany') : t('signIn.invalidCode'));
+  if (welcomeSeen === null) return <Screen scroll={false}>{null}</Screen>;
+  if (!welcomeSeen) {
+    return (
+      <Screen scroll={false}>
+        <Welcome onDone={markWelcomeSeen} />
+      </Screen>
+    );
   }
-
-  const changeEmail = () => {
-    setStep('email');
-    setCode('');
-    setError(null);
-  };
 
   return (
     <Screen>
@@ -65,7 +69,42 @@ export default function SignInScreen() {
         <Body muted style={styles.center}>{t('signIn.subtitle')}</Body>
       </View>
 
-      {step === 'email' ? (
+      <Pressable
+        accessibilityRole="button"
+        onPress={google}
+        disabled={busy !== null}
+        style={({ pressed }) => [styles.google, pressed && { opacity: 0.85 }, busy === 'google' && { opacity: 0.6 }]}
+      >
+        <Text style={styles.googleG}>G</Text>
+        <Text style={styles.googleLabel}>{t('signIn.google')}</Text>
+      </Pressable>
+
+      <View style={styles.divider}>
+        <View style={styles.line} />
+        <Body muted style={{ fontSize: 13 }}>{t('signIn.or')}</Body>
+        <View style={styles.line} />
+      </View>
+
+      {sent ? (
+        <View style={styles.form}>
+          <Card>
+            <View style={styles.sentRow}>
+              <AnimatedIcon icon={Mail} color={colors.accent} animation="pulse" loop />
+              <Body style={{ flex: 1 }}>
+                {t('signIn.linkSent')} {email}
+              </Body>
+            </View>
+            <Body muted>{t('signIn.linkHint')}</Body>
+          </Card>
+          <SecondaryButton
+            label={t('signIn.changeEmail')}
+            onPress={() => {
+              setSent(false);
+              setError(null);
+            }}
+          />
+        </View>
+      ) : (
         <View style={styles.form}>
           <TextField
             value={email}
@@ -77,46 +116,16 @@ export default function SignInScreen() {
             inputMode="email"
             onSubmitEditing={sendEmail}
           />
-          {error ? <ErrorText>{error}</ErrorText> : null}
           <PrimaryButton
-            label={USE_LINK ? t('signIn.sendLink') : t('signIn.sendCode')}
+            label={t('signIn.sendLink')}
             onPress={sendEmail}
-            loading={busy}
-            disabled={!email.trim()}
+            loading={busy === 'email'}
+            disabled={!email.trim() || busy !== null}
           />
-        </View>
-      ) : USE_LINK ? (
-        <View style={styles.form}>
-          <Card>
-            <Body>
-              {t('signIn.linkSent')} {email}
-            </Body>
-            <Body muted>{t('signIn.linkHint')}</Body>
-          </Card>
-          <SecondaryButton label={t('signIn.changeEmail')} onPress={changeEmail} />
-        </View>
-      ) : (
-        <View style={styles.form}>
-          <Body muted>
-            {t('signIn.codeSent')} {email}
-          </Body>
-          <TextField
-            value={code}
-            onChangeText={(v) => setCode(v.replace(/\D/g, ''))}
-            placeholder={t('signIn.code')}
-            keyboardType="number-pad"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={10}
-            style={styles.code}
-            onSubmitEditing={verify}
-          />
-          {error ? <ErrorText>{error}</ErrorText> : null}
-          <PrimaryButton label={t('signIn.verify')} onPress={verify} loading={busy} disabled={code.trim().length < 6} />
-          <SecondaryButton label={t('signIn.changeEmail')} onPress={changeEmail} />
         </View>
       )}
 
+      {error ? <ErrorText>{error}</ErrorText> : null}
       <Body muted style={[styles.center, styles.note]}>{t('signIn.devNote')}</Body>
       <DevPasswordSignIn />
     </Screen>
@@ -128,6 +137,19 @@ const styles = StyleSheet.create({
   logo: { fontSize: 40, color: colors.accent },
   center: { textAlign: 'center' },
   form: { gap: spacing.md },
-  code: { fontFamily: fonts.semibold, fontSize: 22, letterSpacing: 6, textAlign: 'center' },
-  note: { fontSize: 13, marginTop: spacing.lg },
+  google: {
+    minHeight: hitTarget + 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.text,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  googleG: { color: colors.bg, fontFamily: fonts.bold, fontSize: 20 },
+  googleLabel: { color: colors.bg, fontFamily: fonts.semibold, fontSize: 17 },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  line: { flex: 1, height: 1, backgroundColor: colors.cardBorder },
+  sentRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  note: { fontSize: 13, marginTop: spacing.md },
 });

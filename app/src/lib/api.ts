@@ -73,11 +73,21 @@ export function startConversation(params: { language: string; topicId?: string; 
   });
 }
 
-export function sendTurn(conversationId: string, text: string) {
-  // Текстовий режим: тривалість рахує сервер за кількістю слів.
-  return call<TurnResult>('conversation-turn', { conversation_id: conversationId, text });
+// Текст набраний або розпізнаний на пристрої. Без durationMs тривалість рахує сервер за словами.
+export function sendTurn(conversationId: string, text: string, durationMs?: number) {
+  return call<TurnResult>('conversation-turn', { conversation_id: conversationId, text, duration_ms: durationMs });
+}
+
+export type Hint = { suggestion: string; translation_uk: string };
+
+export function getHint(conversationId: string) {
+  return call<Hint>('conversation-hint', { conversation_id: conversationId });
 }
 
 export function finishConversation(conversationId: string) {
   return call<FinishResult>('conversation-finish', { conversation_id: conversationId });
+}
+
+export function deleteAccount() {
+  return call<{ deleted: boolean }>('delete-account', {});
 }

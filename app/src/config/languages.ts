@@ -29,3 +29,9 @@ export const LANGUAGES: LanguageInfo[] = [
   { code: 'pt', nameUk: 'Португальська', nameEn: 'Portuguese', enabled: false },
   { code: 'hi', nameUk: 'Гінді', nameEn: 'Hindi', enabled: false },
 ];
+
+// Локаль для озвучки й розпізнавання мовлення.
+export const SPEECH_LOCALES: Record<LanguageCode, string> = {
+  en: 'en-US', es: 'es-ES', de: 'de-DE', fr: 'fr-FR', it: 'it-IT', pl: 'pl-PL',
+  ja: 'ja-JP', ko: 'ko-KR', zh: 'zh-CN', pt: 'pt-PT', hi: 'hi-IN',
+};

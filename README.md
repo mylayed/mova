@@ -33,7 +33,7 @@ npx supabase link --project-ref <ref>
 npx supabase db push
 ```
 
-Вхід через Apple і Google вмикається в панелі Supabase → Authentication → Providers.
+Вхід через Google: у Google Cloud Console створіть OAuth Client ID (тип Web application) з redirect URI `https://<ref>.supabase.co/auth/v1/callback`, потім у Supabase → Authentication → Sign In / Providers → Google вставте Client ID і Client Secret. У Redirect URLs мають бути `http://localhost:8081`, `exp://**` і `mova://**`. Apple — пізніше, потрібен акаунт Apple Developer.
 
 ## Edge Functions
 
@@ -42,6 +42,8 @@ npx supabase db push
 | `conversation-start` | JSON `{ language, level?, topic_id? | custom_topic? }` | перевіряє ліміт, створює розмову, повертає першу репліку Emma з озвучкою |
 | `conversation-turn` | multipart `{ conversation_id, audio, duration_ms }` або JSON `{ conversation_id, text, duration_ms }` | розпізнає мовлення (або бере текст з пристрою), відповідає й озвучує, списує секунди |
 | `conversation-finish` | JSON `{ conversation_id }` | підсумок, помилки й нові слова; повторний виклик повертає готовий розбір |
+| `conversation-hint` | JSON `{ conversation_id }` | підказка: що можна сказати далі, з перекладом; хвилини не списує |
+| `delete-account` | POST без тіла | видаляє користувача й усі його дані (каскадом) |
 
 Помилки повертаються як `{ error: "<код>" }`: `limit_reached` (402), `premium_topic` (402), `nothing_heard` (422), `conversation_finished` (409) тощо.
 

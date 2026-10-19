@@ -424,3 +424,9 @@ verify_jwt = false
 
 [functions.conversation-finish]
 verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false
+
+[functions.conversation-hint]
+verify_jwt = false
