@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -8,6 +8,7 @@ import {
   TextInput,
   View,
   type StyleProp,
+  type TextInputInstance,
   type TextInputProps,
   type TextStyle,
   type ViewStyle,
@@ -123,8 +124,8 @@ export function OptionRow({
   );
 }
 
-export function TextField(props: TextInputProps) {
-  return <TextInput placeholderTextColor={colors.textMuted} {...props} style={[styles.input, props.style]} />;
+export function TextField({ ref, ...props }: TextInputProps & { ref?: Ref<TextInputInstance> }) {
+  return <TextInput ref={ref} placeholderTextColor={colors.textMuted} {...props} style={[styles.input, props.style]} />;
 }
 
 export function Loading({ label }: { label?: string }) {

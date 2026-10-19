@@ -1,3 +1,4 @@
+import { setAudioModeAsync } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Captions, CaptionsOff, ChevronLeft, Keyboard, Lightbulb, Send, Square } from 'lucide-react-native';
@@ -11,6 +12,7 @@ import {
   Text,
   View,
   type ScrollViewInstance,
+  type TextInputInstance,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -52,6 +54,8 @@ export default function ConversationScreen() {
   const [monthLimit, setMonthLimit] = useState<number | null>(null);
   const [timeUp, setTimeUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const inputRef = useRef<TextInputInstance>(null);
 
   const startedRef = useRef(false);
   const scrollRef = useRef<ScrollViewInstance>(null);
@@ -73,6 +77,8 @@ export default function ConversationScreen() {
   useEffect(() => {
     if (startedRef.current || !activeLanguage) return;
     startedRef.current = true;
+    // iOS глушить синтез мови в беззвучному режимі; репетитор має звучати завжди.
+    setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
     fetchUsage().then((u) => u && setMonthLimit(u.monthly_limit_seconds));
     startConversation({ language, topicId: params.topicId, customTopic: params.customTopic })
       .then((res) => {
@@ -116,8 +122,11 @@ export default function ConversationScreen() {
 
   function micDown() {
     if (!voiceInput) {
-      // На телефоні без розпізнавання — відкриваємо поле, де можна диктувати з клавіатури.
+      // На телефоні без розпізнавання (Expo Go) — відкриваємо клавіатуру: на ній є мікрофон для диктування.
+      Speech.stop();
       setTyping(true);
+      setNotice(t('conversation.dictateHint'));
+      requestAnimationFrame(() => inputRef.current?.focus());
       return;
     }
     if (state === 'thinking' || !conversationId) return;
@@ -148,6 +157,7 @@ export default function ConversationScreen() {
     const text = draft.trim();
     if (!text || state === 'thinking') return;
     setDraft('');
+    setNotice(null);
     submit(text);
   }
 
@@ -237,10 +247,12 @@ export default function ConversationScreen() {
           <View style={styles.footer}>
             <StateIndicator state={state} />
             <Text style={[styles.stateLabel, state === 'listening' && { color: colors.accent }]}>{stateLabel}</Text>
+            {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
             {typing ? (
               <View style={styles.inputRow}>
                 <TextField
+                  ref={inputRef}
                   value={draft}
                   onChangeText={setDraft}
                   placeholder={voiceInput ? t('conversation.placeholder') : t('conversation.placeholderDictate')}
@@ -370,6 +382,7 @@ const styles = StyleSheet.create({
   hintText: { color: colors.text, fontFamily: fonts.semibold, fontSize: 16 },
   hintTranslation: { color: colors.textMuted, fontFamily: fonts.regular, fontSize: 14 },
   footer: { paddingHorizontal: 20, paddingBottom: spacing.md, paddingTop: spacing.sm, gap: spacing.sm, alignItems: 'stretch' },
+  notice: { textAlign: 'center', color: colors.accent, fontFamily: fonts.medium, fontSize: 14 },
   stateLabel: { textAlign: 'center', color: colors.textMuted, fontFamily: fonts.medium, fontSize: 14, minHeight: 18 },
   controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   side: { width: 72, alignItems: 'center', gap: 6 },
